@@ -2,7 +2,7 @@ title = '''
 CBCP (Calculation of the bearing capacity of piles)
 Программа для расчёта несущей способности свай в талых грунтах
 СП 24.13330.2011 (Свайные фундаменты)
-NykSu (c) май 2020.  v 1.0.0
+NykSu (c) май 2020.  v 1.0.1
 GitHub NykSu
 '''
 
