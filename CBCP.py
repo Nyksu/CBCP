@@ -154,7 +154,7 @@ class Catalog:
         return len(self.operators)
     
     def LoadData(self, sheet):
-        for row in range(self.strow, self.endraw):
+        for row in range(self.strow, self.endraw + 1):
             rr = []
             for col in range(1, self.endcol):
                 if self.titles[col-1][0] == '@':
