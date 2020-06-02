@@ -5,6 +5,8 @@ struct = {'sand' : [0, 'песчаные грунты', 'песчаного гр
 
 base_path = ''
 xlpath = 'E:\Volume\Dev\CBCP\Svai\\'
-x7_2 = '7_2.xlsx'
-x7_3 = '7_3.xlsx'
-x7_4 = '7_4.xlsx'
+xlname = {'7_2': '7_2.xlsx', '7_3': '7_3.xlsx', '7_4': '7_4.xlsx'}
+
+captions = {'7_2': {'pos': [2, 1], 'plus': [3,1]},
+            '7_3': {'pos': [2, 1], 'plus': [3,1]},
+            '7_4': {'pos': [3, 1], 'plus': [3,4]}}

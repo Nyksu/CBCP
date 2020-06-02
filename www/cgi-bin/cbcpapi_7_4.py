@@ -1,3 +1,5 @@
+# v 1.0.1 release
+
 import cbcpconf
 import cgi
 import html
@@ -15,7 +17,8 @@ text = form.getfirst("VOLUME", "0")
 text = html.escape(text)
 val = int(text)
 
-wb = xlrd.open_workbook(cbcpconf.xlpath + cbcpconf.x7_4)
+
+wb = xlrd.open_workbook(cbcpconf.xlpath + cbcpconf.xlname['7_4'])
 sh_dic_7_4 = wb.sheet_by_name('grunt')
 
 rowcount = sh_dic_7_4.nrows
