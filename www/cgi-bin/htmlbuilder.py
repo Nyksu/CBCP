@@ -1,5 +1,5 @@
 # Библиотека работы с формирование HTML страниц.
-# v 1.0.1 beta
+# v 1.0.2 beta
 
 class htmlpage:
     pages = {}
@@ -36,6 +36,7 @@ class htmlpage:
             self.lastotag = ''
 
     def printHTML(self):
+        print("Content-type: text/html\n")
         css = ''
         if self.css:
             css = '<link rel="stylesheet" href="{}">'.format(htmlpage.csspath)

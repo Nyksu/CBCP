@@ -1,4 +1,4 @@
-# v 1.0.2 release
+# v 1.0.3 release
 
 import cbcpconf
 import cgi
@@ -43,7 +43,9 @@ for row in range(1,rowcount):
                 data.append(func74[ii](sh_dic_7_4.row_values(row)[ii]))
         tab74[id] = data
 if len(func74.keys()) > 0:
-    json_string = json.dumps(tab74)
+    json_string = json.dumps(tab74)    
+    print("Content-type: text\n")
     print(json_string)
 else:
+    print("Content-type: text\n")
     print('error')
