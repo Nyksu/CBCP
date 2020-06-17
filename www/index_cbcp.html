@@ -27,9 +27,9 @@
                 циклично, заполняются для каждого слоя отдельно: -->
             <legend>Определяем слои грунта: </legend>
             <p><label><b>Новый слой грунта.</b></label></p>
-            <p><label for="GRUNT">Выбирите тип грунта:<em>*</em></label></p>
-            <p><input type="radio" name="GRUNT" value="sand">песчаные грунты</p>
-            <p><input type="radio" name="GRUNT" value="clay">глинистые грунты</p>
+            <p><label for="GRUNT00">Выбирите тип грунта:<em>*</em></label></p>
+            <p><input type="radio" name="GRUNT00" value="sand">песчаные грунты</p>
+            <p><input type="radio" name="GRUNT00" value="clay">глинистые грунты</p>
             <hr>
             <!--
                 в зависимости от выбранного выше типа очередного слоя грунта далее выводятся части формы с упоминанием либо 
@@ -37,14 +37,14 @@
             -->
             <!-- Вот это только для песчаных грунтов: -->
             <p><label><b>Уточните параметры  песчаного грунта</b></label></p>
-            <p><label for="TID">Из каких типов песка  состоит слой (введите номер):<em>*</em></label></p>
-            <p><input type="radio" name="TID" value="0">гравелистых
-            <input type="radio" name="TID" value="1">крупных
-            <input type="radio" name="TID" value="2">средней крупности
-            <input type="radio" name="TID" value="3">мелких
-            <input type="radio" name="TID" value="4">пылеватых</p>
-            <p><label for="VAL">Введите мощность текущего слоя песчаного грунта:<em>*</em> </label>
-            <input type="text" name="VAL" size="6"> (м)</p>
+            <p><label for="TID00">Из каких типов песка  состоит слой (введите номер):<em>*</em></label></p>
+            <p><input type="radio" name="TID00" value="0">гравелистых
+            <input type="radio" name="TID00" value="1">крупных
+            <input type="radio" name="TID00" value="2">средней крупности
+            <input type="radio" name="TID00" value="3">мелких
+            <input type="radio" name="TID00" value="4">пылеватых</p>
+            <p><label for="VAL00">Введите мощность текущего слоя песчаного грунта:<em>*</em> </label>
+            <input type="text" name="VAL00" size="6"> (м)</p>
             <!--   а это только для глинистых грунтов: -->
             <p><label><b>Уточните параметры  глинистого грунта</b></label></p>
             <p><label>Табличные значения:  0.0; 0.1; 0.2; 0.3; 0.4; 0.5; 0.6; 0.7; 0.8; 0.9; 1.0</label></p>
@@ -67,6 +67,8 @@
         </fieldset>
     </fieldset>
     <p></p>
+    <!-- Поле LAYERCOUNT - количество введённых слоёв грунта: -->
+    <input type="hidden" name="LAYERCOUNT" value="1">
     <fieldset>
         <legend>Блок ввода коэффициентов надёжности: </legend>            
         <p><label for="SVAIANG">Введите коэффициент надежности по грунтам:<em>*</em> </label>

@@ -1,5 +1,5 @@
 # Библиотека работы с формирование HTML страниц.
-# v 1.0.2 beta
+# v 1.0.4 beta
 
 class htmlpage:
     pages = {}
@@ -17,7 +17,7 @@ class htmlpage:
     
     def addString(self, newtag, params, ss, needclosetag):
         if self.lastotag != '' and (needclosetag or newtag !=''):
-            self.closetag()
+            self.closetag() 
         if newtag !='':
             self.lastotag = newtag
             parstr = ''
@@ -36,17 +36,24 @@ class htmlpage:
             self.lastotag = ''
 
     def printHTML(self):
-        print("Content-type: text/html\n")
         css = ''
         if self.css:
             css = '<link rel="stylesheet" href="{}">'.format(htmlpage.csspath)
+        print("Content-type: text/html\n")
+        # raise IOError('321')
         print(str(self.toper).format(cssstr = css))
         for ss in self.lines:
             print(ss)
         print(self.grounder)
     
+    def addStringsDict(self, data):
+        for kk in data.keys():
+            self.addString('', '', kk + ' = ' + str(data[kk].value), False)
+
     def addStringsData(self, data):
-        for itm in data.Keys():
+        if type(data) != dict:
+            data = {'itm':data}
+        for itm in data.keys():
             if type(data[itm]) == list:
                 # множественные данные (например слои грунта)
                 for dd in data[itm]:

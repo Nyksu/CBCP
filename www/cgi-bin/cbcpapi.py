@@ -2,7 +2,7 @@ title = '''
 <h3>CBCP (Calculation of the bearing capacity of piles)</h3>
 <h4>Программа для расчёта несущей способности свай в талых грунтах
     СП 24.13330.2011 (Свайные фундаменты)</h4>
-    <p>NykSu (c) май, июнь 2020.  v 1.0.5 beta web</p>
+    <p>NykSu (c) май, июнь 2020.  v 1.0.6 beta web</p>
     <p>GitHub: NykSu</p>
 '''
 
@@ -241,8 +241,6 @@ def CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc):
         if f < 0:            
             return f
         Fff = f * lrdepth * cat7_4.data[cat7_4.operators.index(svaiaO)][4]
-        print(lr.id, round(lrmiddle, 2), round(f, 2), round(lrdepth, 2), 
-              cat7_4.data[cat7_4.operators.index(svaiaO)][4], round(Fff, 2))
         Fds += Fff
     midHLast = lll[1] - lll[0].depth + (lll[0].depth - (lll[1] - svaiaL)) / 2
     f = 0
@@ -253,8 +251,6 @@ def CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc):
     if f < 0:
         return f
     Fff = f * (lll[0].depth - (lll[1] - svaiaL)) * cat7_4.data[cat7_4.operators.index(svaiaO)][4]
-    print(lll[0].id, round(midHLast, 2), round(f, 2), round(lll[0].depth - (lll[1] - svaiaL), 2), 
-          cat7_4.data[cat7_4.operators.index(svaiaO)][4], round(Fff, 2))
     Fds += Fff
     Fds *= svaiaP
     Fds *= Gamma_C
@@ -299,12 +295,14 @@ hpg = hb.htmlpage('calc', cbcpconf.htmlResTop + title, cbcpconf.htmlResFoot, Fal
 
 form = cgi.FieldStorage()
 # Слои почвы
+
 G = SafeGetFromForm(form, "G", "10", float)
 cutLayer = SafeGetFromForm(form, "CUTLAYER", "0", int)
 layercount = SafeGetFromForm(form, "LAYERCOUNT", "0", int)
 if layercount == 0:
     hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Нет ни однго слоя.</h3>', False)
-    results['errors'].append('Нет ни однго слоя') 
+    results['errors'].append('Нет ни однго слоя')
+    hpgerr.addStringsDict(form)
     hpgerr.printHTML()
     sys.exit()
 results['indata']['grunt'] = []
@@ -316,6 +314,7 @@ for ii in range(0, layercount):
     if grunt == "":
         hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Нет типа слоя.</h3>', False)
         results['errors'].append('Нет типа слоя.') 
+        hpgerr.addStringsDict(form) 
         hpgerr.printHTML()
         sys.exit()
     tid = SafeGetFromForm(form, "TID" + snom, "-1", int)
@@ -373,11 +372,15 @@ results['indata']['HLAYERS'] = (hlayers, 'м', 'Общая глубина вве
 if hlayers < svaiaL:
     hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Глубина слоёв меньше длины сваи.</h3>', False)
     results['errors'].append('Глубина слоёв меньше длины сваи.') 
+    hpgerr.addStringsDict(form) 
     hpgerr.printHTML()
     sys.exit()
 # Коэффициент, согласно способа погружения сваи
 svaiaO = SafeGetFromForm(form, "SVAIAO", "1", int)
-results['indata']['SVAIAO'] = (svaiaO, '', 'Коэффициент согласно способа погружения сваи:')
+results['indata']['SVAIAO'] = (cat7_4.data[cat7_4.operators.index(svaiaO)][1], 
+                            cat7_4.data[cat7_4.operators.index(svaiaO)][2], 
+                            'Коэффициент согласно способа погружения сваи: {} '.format( 
+                            cat7_4.data[cat7_4.operators.index(svaiaO)][0]))
 # Прочие коэффициенты
 Gamma_C = SafeGetFromForm(form, "GAMMA_C", "1", float)
 results['indata']['GAMMA_C'] = (Gamma_C, '', 'Коэффициент Gamma_C:')
@@ -386,19 +389,21 @@ results['indata']['G'] = (G, '', 'Коэффициент перевода кН �
 # 
 svaiaF = SafeGetFromForm(form, "SVAIAF", "1", float) # желаемая несущая способность при подборе длины сваи
 svaiaFT = SafeGetFromForm(form, "SVAIAFT", "1", int) # При подборе выбор - только по боковой поверности или полная несущая
-if svaiaFT:
-    results['indata']['SVAIAF'] = (svaiaF, 'тонн', 'желаемая несущая способность по боковой поверхности при подборе длины сваи:')
-else:
-    results['indata']['SVAIAF'] = (svaiaF, 'тонн', 'желаемая полная несущая способность при подборе длины сваи:')
+
 # Блок расчётов. Расчёт сваи.
 LPile = svaiaL
 if svaiaС:
+    if svaiaFT:
+        results['indata']['SVAIAF'] = (svaiaF, 'тонн', 'желаемая несущая способность по боковой поверхности при подборе длины сваи:')
+    else:
+        results['indata']['SVAIAF'] = (svaiaF, 'тонн', 'желаемая полная несущая способность при подборе длины сваи:')
     svaiaF *= G    
     while True:
         Fdse = CalcPile(Gamma_C, LPile, svaiaS, svaiaP, svaiaO, KN, hNoCalc)
         if type(Fdse) == int:
             hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Глубина слоёв меньше длины сваи. № {} </h3>'.format(str(Fdse)), False)
-            results['errors'].append('Глубина слоёв меньше длины сваи.') 
+            results['errors'].append('Глубина слоёв меньше длины сваи.')
+            hpgerr.addStringsDict(form)  
             hpgerr.printHTML()
             sys.exit()
         ss = ''
@@ -407,6 +412,7 @@ if svaiaС:
             if hlayers <= LPile:
                 hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Сведений по слоям грунта не хватает для увеличения длины сваи. Подбор прекращён.</h3>', False)
                 results['errors'].append('Сведений по слоям грунта не хватает для увеличения длины сваи. Подбор прекращён.') 
+                hpgerr.addStringsDict(form) 
                 hpgerr.printHTML()
                 sys.exit()
             continue
@@ -416,6 +422,7 @@ if svaiaС:
                 if LPile < 3:
                     hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.</h3>', False)
                     results['errors'].append('Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.') 
+                    hpgerr.addStringsDict(form) 
                     hpgerr.printHTML()
                     sys.exit()
                 continue
@@ -426,6 +433,7 @@ else:
     if type(Fdse) == int:
         hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Ошибка расчёта или интерполяции; code ={}</h3>'.format(str(Fdse)), False)
         results['errors'].append('Глубина слоёв меньше длины сваи.') 
+        hpgerr.addStringsDict(form) 
         hpgerr.printHTML()
         sys.exit()
 
@@ -441,7 +449,8 @@ results['reslines'].append((round(Fdse[2] / G, 2), 'тонн', 'Несущая �
 results['reslines'].append((round(Fdse[1] / G, 2), 'тонн', 'Несущая способность грунта по боковой поверхности сваи = '))
 results['reslines'].append((round(Fdse[3] / G, 2), 'тонн', 'Предельно допустимая нагрузка = '))
 
-hpg.addString('', '', '<h1>{}</h1> <h3>{}</h3>'.format(results['title'][0], results['title'][1]), False)
+for i in range(0, len(results['title'])):
+    hpg.addString('', '', '<h2>{}</h2>'.format(results['title'][i]), False)
 hpg.addString('', '', '<p>{}<p>'.format(results['captions'][0]), False)
 hpg.addStringsData(results['indata']) # исходные данные 
 hpg.addString('', '', '<p>{}<p>'.format(results['captions'][1]), False)
@@ -453,4 +462,4 @@ if prnJSON:
     print("Content-type: text\n")
     print(json_string)
 else:
-    hpg.printHTML
+    hpg.printHTML()
