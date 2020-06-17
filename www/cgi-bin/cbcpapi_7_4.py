@@ -1,4 +1,4 @@
-# v 1.0.1 release
+# v 1.0.2 release
 
 import cbcpconf
 import cgi
