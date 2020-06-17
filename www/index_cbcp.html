@@ -6,13 +6,16 @@
 <h1>CBCP (Calculation of the bearing capacity of piles)</h1>
 <h3>Программа для расчёта несущей способности свай в талых грунтах
     СП 24.13330.2011 (Свайные фундаменты)</h3>
-    <p>NykSu (c) май 2020.  v 1.0.0 web
+    <p>Python CGI, NykSu (c) май 2020.  v 1.0.4 web
     <br>GitHub NykSu</p>
+    <!-- Себя впиши здесь! -->
 <table>
 <tr>
 <td>
-<form action="/cgi-bin/cbcpapi.py">
+<form action="/cgi-bin/cbcpapi.py" method="POST">
     <fieldset>
+        <!-- Поле JSON - для выбора типа ответа. если 0 - HTML, если 1 - json: -->
+        <input type="hidden" name="JSON" value="0">
         <legend>Блок определения параметров грунта: </legend>
         <p><label for="CUTLAYER">Автоматическое деление слоёв<em>*</em></label></p>
         <p><input type="radio" name="CUTLAYER" value="0">Не делить слои грунтов на части</p>

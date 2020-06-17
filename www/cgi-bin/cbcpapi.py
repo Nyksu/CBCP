@@ -1,10 +1,11 @@
 title = '''
-CBCP (Calculation of the bearing capacity of piles)
-Программа для расчёта несущей способности свай в талых грунтах
-СП 24.13330.2011 (Свайные фундаменты)
-NykSu (c) май 2020.  v 1.0.3 b web
-GitHub NykSu
+<h3>CBCP (Calculation of the bearing capacity of piles)</h3>
+<h4>Программа для расчёта несущей способности свай в талых грунтах
+    СП 24.13330.2011 (Свайные фундаменты)</h4>
+    <p>NykSu (c) май, июнь 2020.  v 1.0.5 beta web</p>
+    <p>GitHub: NykSu</p>
 '''
+
 import cbcpconf
 import htmlbuilder as hb
 import cgi
@@ -71,7 +72,7 @@ class Catalog:
         self.captionplus = ''
         Catalog.codes.update({(code, sort): self})
 
-def getInterpol(self, neoper, fluidity, reserror = -1):
+    def getInterpol(self, neoper, fluidity, reserror = -1):
         result = reserror # возвращает при ошибке
         try:
             fluidlist = list(map(float, self.titles))
@@ -100,7 +101,8 @@ def getInterpol(self, neoper, fluidity, reserror = -1):
         if r1 > 0 and r2 > 0:
             result = (r2 - r1) * (fluidity - fluidlist[idn]) / (fluidlist[idn + 1] - fluidlist[idn]) + r1
         return result
-    
+
+
     def getNear(self, neoper, titlnom, reserror = -10):
         result = reserror # возвращает при ошибке
         if not self.interpol:
@@ -187,10 +189,8 @@ def getInterpol(self, neoper, fluidity, reserror = -1):
         # row, col = [int(i) for i in conf.get(self.code, 'captionpos').split(',')] 
         row, col = cbcpconf.captions[self.code]['pos']
         self.caption = sheet.row_values(row)[col]   
-        stt = conf.get(self.code, 'captionplus')
-        if stt != '@':
-            row, col = [int(i) for i in stt.split(',')]
-            self.captionplus = sheet.row_values(row)[col]
+        row, col = cbcpconf.captions[self.code]['plus']
+        self.captionplus = sheet.row_values(row)[col]
 
 def SafeGetFromForm(form, parname, default, func):
     text = form.getfirst(parname, default)
@@ -266,7 +266,7 @@ def CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc):
 
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
-hpgerr = hb.htmlpage('error', cbcpconf.htmlResTop, cbcpconf.htmlResFoot, False)
+hpgerr = hb.htmlpage('error', cbcpconf.htmlResTop + title, cbcpconf.htmlResFoot, False)
 results = {'errors': [], 'title': [], 'indata': {}, 'captions': [], 'reslines': []}
 
 cat7_2sand = Catalog('7_2', 'sand', True, True, False)
@@ -295,10 +295,11 @@ wb = xlrd.open_workbook(cbcpconf.xlpath + cbcpconf.xlname[cat7_4.code])
 sh_dic = wb.sheet_by_name(cat7_4.sort)
 cat7_4.setupFromSheet(sh_dic)
 
-hpg = hb.htmlpage('calc', cbcpconf.htmlResTop, cbcpconf.htmlResFoot, False)
+hpg = hb.htmlpage('calc', cbcpconf.htmlResTop + title, cbcpconf.htmlResFoot, False)
 
 form = cgi.FieldStorage()
 # Слои почвы
+G = SafeGetFromForm(form, "G", "10", float)
 cutLayer = SafeGetFromForm(form, "CUTLAYER", "0", int)
 layercount = SafeGetFromForm(form, "LAYERCOUNT", "0", int)
 if layercount == 0:
@@ -307,7 +308,7 @@ if layercount == 0:
     hpgerr.printHTML()
     sys.exit()
 results['indata']['grunt'] = []
-for ii in range(0,layercount):
+for ii in range(0, layercount):
     snom = str(ii)
     if ii <10:
         snom = '0' + snom
@@ -319,8 +320,14 @@ for ii in range(0,layercount):
         sys.exit()
     tid = SafeGetFromForm(form, "TID" + snom, "-1", int)
     val = SafeGetFromForm(form, "VAL" + snom, "0", float)
-    fluid = SafeGetFromForm(form, "FLUID" + snom, "0", float)    
-    results['indata']['grunt'].append((round(Fdse[0] / G, 2), 'тонн', 'Расчётная, полная несущая способность Fd = '))
+    fluid = SafeGetFromForm(form, "FLUID" + snom, "0", float)
+    results['indata']['grunt'].append((cbcpconf.struct[grunt][1], '', 'Слой грунта: '))
+    if grunt == 'sand':
+        results['indata']['grunt'].append((Catalog.codes[('7_2', grunt)].titles[tid], '', 'Тип  песчаного грунта = '))        
+    else:
+        results['indata']['grunt'].append((fluid, '', 'Показатель текучести глинистого грунта = '))
+    results['indata']['grunt'].append((val, 'м', 'Мощность слоя грунта (толщина) = '))
+    
     if cutLayer > 0 and val > cutLayer:
         for vv in range(cutLayer,int(val+1), cutLayer):
             graundLayers(cutLayer, grunt, tid, fluid)
@@ -374,7 +381,6 @@ results['indata']['SVAIAO'] = (svaiaO, '', 'Коэффициент соглас�
 # Прочие коэффициенты
 Gamma_C = SafeGetFromForm(form, "GAMMA_C", "1", float)
 results['indata']['GAMMA_C'] = (Gamma_C, '', 'Коэффициент Gamma_C:')
-G = SafeGetFromForm(form, "G", "10", float)
 results['indata']['G'] = (G, '', 'Коэффициент перевода кН в тонны G:')
 
 # 
@@ -406,7 +412,7 @@ if svaiaС:
             continue
         else:
             if abs(Fdse[svaiaFT] - svaiaF)/svaiaF > 0.05:
-               LPile -= 0.2
+                LPile -= 0.2
                 if LPile < 3:
                     hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.</h3>', False)
                     results['errors'].append('Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.') 
@@ -433,7 +439,7 @@ if svaiaС:
     results['reslines'].append((round(LPile, 2), 'метров', 'Искомая длина сваи = '))
 results['reslines'].append((round(Fdse[2] / G, 2), 'тонн', 'Несущая способность грунта под нижним концом сваи = '))
 results['reslines'].append((round(Fdse[1] / G, 2), 'тонн', 'Несущая способность грунта по боковой поверхности сваи = '))
-results['reslines'].append((round(Fdse[3] / G, 2)), 'тонн', 'Предельно допустимая нагрузка = '))
+results['reslines'].append((round(Fdse[3] / G, 2), 'тонн', 'Предельно допустимая нагрузка = '))
 
 hpg.addString('', '', '<h1>{}</h1> <h3>{}</h3>'.format(results['title'][0], results['title'][1]), False)
 hpg.addString('', '', '<p>{}<p>'.format(results['captions'][0]), False)
@@ -444,6 +450,7 @@ hpg.addStringsData(results['reslines']) # результаты рассчето�
 prnJSON = SafeGetFromForm(form, "JSON", "0", int)
 if prnJSON:
     json_string = json.dumps(results)
+    print("Content-type: text\n")
     print(json_string)
 else:
     hpg.printHTML
