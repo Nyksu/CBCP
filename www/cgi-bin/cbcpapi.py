@@ -2,7 +2,7 @@ title = '''
 <h3>CBCP (Calculation of the bearing capacity of piles)</h3>
 <h4>Программа для расчёта несущей способности свай в талых грунтах
     СП 24.13330.2011 (Свайные фундаменты)</h4>
-    <p>NykSu (c) май, июнь 2020.  v 1.0.6 beta web</p>
+    <p>NykSu (c) май, июнь 2020.  v 1.0.7 release web</p>
     <p>GitHub: NykSu</p>
 '''
 
@@ -195,7 +195,12 @@ class Catalog:
 def SafeGetFromForm(form, parname, default, func):
     text = form.getfirst(parname, default)
     text = html.escape(text)
-    return func(text)
+    try:
+        result = func(text)
+    except:
+        result = func(default)
+    finally:
+        return result
 
 def CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc):
     result = -100
@@ -260,6 +265,21 @@ def CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc):
     result = [F_d, Fds, Fde, Fdp]
     return result
 
+def pprn(prnJSON, res, pg):
+    if prnJSON:
+        json_string = json.dumps(res)
+        print("Content-type: text\n")
+        print(json_string)
+    else:
+        pg.printHTML()
+
+def ErrorExit(capt, prnJSON, res, pg, form):
+    pg.addString('', '', '<h1>Ошибка</h1> <h3>{}.</h3>'.format(capt), False)
+    res['errors'].append(capt) 
+    pg.addStringsDict(form) 
+    pprn(prnJSON, res, pg)
+    sys.exit()
+
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 hpgerr = hb.htmlpage('error', cbcpconf.htmlResTop + title, cbcpconf.htmlResFoot, False)
@@ -294,32 +314,39 @@ cat7_4.setupFromSheet(sh_dic)
 hpg = hb.htmlpage('calc', cbcpconf.htmlResTop + title, cbcpconf.htmlResFoot, False)
 
 form = cgi.FieldStorage()
+prnJSON = SafeGetFromForm(form, "JSON", "0", int)
 # Слои почвы
-
 G = SafeGetFromForm(form, "G", "10", float)
 cutLayer = SafeGetFromForm(form, "CUTLAYER", "0", int)
+
 layercount = SafeGetFromForm(form, "LAYERCOUNT", "0", int)
 if layercount == 0:
-    hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Нет ни однго слоя.</h3>', False)
-    results['errors'].append('Нет ни однго слоя')
-    hpgerr.addStringsDict(form)
-    hpgerr.printHTML()
-    sys.exit()
+    capt = 'Нет числа введённых слоёв'
+    ErrorExit(capt, prnJSON, results, hpgerr, form)
 results['indata']['grunt'] = []
 for ii in range(0, layercount):
     snom = str(ii)
     if ii <10:
         snom = '0' + snom
     grunt = SafeGetFromForm(form, "GRUNT" + snom, "", str)
-    if grunt == "":
-        hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Нет типа слоя.</h3>', False)
-        results['errors'].append('Нет типа слоя.') 
-        hpgerr.addStringsDict(form) 
-        hpgerr.printHTML()
-        sys.exit()
-    tid = SafeGetFromForm(form, "TID" + snom, "-1", int)
+    if grunt == "" or grunt not in ['sand','clay']:
+        capt = 'Нет типа слоя'
+        ErrorExit(capt, prnJSON, results, hpgerr, form)
+
     val = SafeGetFromForm(form, "VAL" + snom, "0", float)
-    fluid = SafeGetFromForm(form, "FLUID" + snom, "0", float)
+    if val == 0:
+        continue
+
+    tid = SafeGetFromForm(form, "TID" + snom, "-1", int)
+    if tid < 0 and grunt == 'sand':
+        capt = 'Задан песчаный грунт, но не выбран вид песков'
+        ErrorExit(capt, prnJSON, results, hpgerr, form)
+
+    fluid = SafeGetFromForm(form, "FLUID" + snom, "-1", float)
+    if fluid < 0 and grunt == 'clay':
+        capt = 'Задан глинистый грунт, но не выбрана текучесть'
+        ErrorExit(capt, prnJSON, results, hpgerr, form)
+
     results['indata']['grunt'].append((cbcpconf.struct[grunt][1], '', 'Слой грунта: '))
     if grunt == 'sand':
         results['indata']['grunt'].append((Catalog.codes[('7_2', grunt)].titles[tid], '', 'Тип  песчаного грунта = '))        
@@ -348,7 +375,10 @@ if svaiaT:
     results['indata']['SVAIAT'] = ('Квадрат', '', 'Форма сечения сваи:')
 else:
     results['indata']['SVAIAT'] = ('Круг', '', 'Форма сечения сваи:')
-svaiaR = SafeGetFromForm(form, "SVAIAR", "1", float)
+svaiaR = SafeGetFromForm(form, "SVAIAR", "0", float)
+if svaiaR <= 0:
+    capt = 'Не задан размер по сечению сваи (диаметр или сторона квадрата)'
+    ErrorExit(capt, prnJSON, results, hpgerr, form)
 svaiaS = svaiaR * svaiaR
 svaiaP = svaiaR * 4
 if not svaiaT:
@@ -356,11 +386,13 @@ if not svaiaT:
     svaiaP = svaiaR * 3.14
 results['indata']['SVAIAS'] = (svaiaS, 'кв.м', 'Площадь сечения сваи:')
 results['indata']['SVAIAP'] = (svaiaP, 'м', 'Периметр сечения сваи:')
+
 svaiaС = SafeGetFromForm(form, "SVAIAC", "1", int)
 svaiaL = SafeGetFromForm(form, "SVAIAL", "1", float)
 if svaiaС:
+    svaiaС = 1
     results['indata']['SVAIAC'] = ('подбор длины сваи', '', 'Выбора вида расчётов:')
-else :
+else :    
     results['indata']['SVAIAC'] = ('расчёт сваи', '', 'Выбора вида расчётов:')
 if svaiaL < 3:
     svaiaL = 3
@@ -370,13 +402,13 @@ if abs(hlayers - svaiaL) < 0.05:
 results['indata']['SVAIAL'] = (svaiaL, 'м', 'Длина сваи:')
 results['indata']['HLAYERS'] = (hlayers, 'м', 'Общая глубина введённых слоёв грунта:')
 if hlayers < svaiaL:
-    hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Глубина слоёв меньше длины сваи.</h3>', False)
-    results['errors'].append('Глубина слоёв меньше длины сваи.') 
-    hpgerr.addStringsDict(form) 
-    hpgerr.printHTML()
-    sys.exit()
+    capt = 'Глубина слоёв меньше длины сваи'
+    ErrorExit(capt, prnJSON, results, hpgerr, form)
 # Коэффициент, согласно способа погружения сваи
-svaiaO = SafeGetFromForm(form, "SVAIAO", "1", int)
+svaiaO = SafeGetFromForm(form, "SVAIAO", "0", int)
+if svaiaO not in cat7_4.operators:
+    capt = 'Не выбран коэффициент согласно способа погружения сваи'
+    ErrorExit(capt, prnJSON, results, hpgerr, form)
 results['indata']['SVAIAO'] = (cat7_4.data[cat7_4.operators.index(svaiaO)][1], 
                             cat7_4.data[cat7_4.operators.index(svaiaO)][2], 
                             'Коэффициент согласно способа погружения сваи: {} '.format( 
@@ -387,12 +419,15 @@ results['indata']['GAMMA_C'] = (Gamma_C, '', 'Коэффициент Gamma_C:')
 results['indata']['G'] = (G, '', 'Коэффициент перевода кН в тонны G:')
 
 # 
-svaiaF = SafeGetFromForm(form, "SVAIAF", "1", float) # желаемая несущая способность при подборе длины сваи
+svaiaF = SafeGetFromForm(form, "SVAIAF", "0", float) # желаемая несущая способность при подборе длины сваи
 svaiaFT = SafeGetFromForm(form, "SVAIAFT", "1", int) # При подборе выбор - только по боковой поверности или полная несущая
 
 # Блок расчётов. Расчёт сваи.
 LPile = svaiaL
 if svaiaС:
+    if svaiaF <=0:
+        capt = 'Не выбрана желаемая несущая способность при подборе длины сваи'
+        ErrorExit(capt, prnJSON, results, hpgerr, form)
     if svaiaFT:
         results['indata']['SVAIAF'] = (svaiaF, 'тонн', 'желаемая несущая способность по боковой поверхности при подборе длины сваи:')
     else:
@@ -401,41 +436,29 @@ if svaiaС:
     while True:
         Fdse = CalcPile(Gamma_C, LPile, svaiaS, svaiaP, svaiaO, KN, hNoCalc)
         if type(Fdse) == int:
-            hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Глубина слоёв меньше длины сваи. № {} </h3>'.format(str(Fdse)), False)
-            results['errors'].append('Глубина слоёв меньше длины сваи.')
-            hpgerr.addStringsDict(form)  
-            hpgerr.printHTML()
-            sys.exit()
+            capt = 'Глубина слоёв меньше длины сваи.'
+            ErrorExit(capt, prnJSON, results, hpgerr, form)
         ss = ''
         if Fdse[svaiaFT] <= svaiaF:
             LPile += 0.5
             if hlayers <= LPile:
-                hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Сведений по слоям грунта не хватает для увеличения длины сваи. Подбор прекращён.</h3>', False)
-                results['errors'].append('Сведений по слоям грунта не хватает для увеличения длины сваи. Подбор прекращён.') 
-                hpgerr.addStringsDict(form) 
-                hpgerr.printHTML()
-                sys.exit()
+                capt = 'Сведений по слоям грунта не хватает для увеличения длины сваи. Подбор прекращён.'
+                ErrorExit(capt, prnJSON, results, hpgerr, form)
             continue
         else:
             if abs(Fdse[svaiaFT] - svaiaF)/svaiaF > 0.05:
                 LPile -= 0.2
                 if LPile < 3:
-                    hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.</h3>', False)
-                    results['errors'].append('Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.') 
-                    hpgerr.addStringsDict(form) 
-                    hpgerr.printHTML()
-                    sys.exit()
+                    capt = 'Свая не может быть уменьшена. Придел расчётов 3м. Подбор прекращён.'
+                    ErrorExit(capt, prnJSON, results, hpgerr, form)
                 continue
             else:
                 break
 else:
     Fdse = CalcPile(Gamma_C, svaiaL, svaiaS, svaiaP, svaiaO, KN, hNoCalc)
     if type(Fdse) == int:
-        hpgerr.addString('', '', '<h1>Ошибка</h1> <h3>Ошибка расчёта или интерполяции; code ={}</h3>'.format(str(Fdse)), False)
-        results['errors'].append('Глубина слоёв меньше длины сваи.') 
-        hpgerr.addStringsDict(form) 
-        hpgerr.printHTML()
-        sys.exit()
+        capt = 'Глубина слоёв меньше длины сваи.'
+        ErrorExit(capt, prnJSON, results, hpgerr, form)
 
 results['title'].append('Расчёт удачно закончен!')
 if svaiaС:
@@ -456,10 +479,4 @@ hpg.addStringsData(results['indata']) # исходные данные
 hpg.addString('', '', '<p>{}<p>'.format(results['captions'][1]), False)
 hpg.addStringsData(results['reslines']) # результаты рассчетов
 
-prnJSON = SafeGetFromForm(form, "JSON", "0", int)
-if prnJSON:
-    json_string = json.dumps(results)
-    print("Content-type: text\n")
-    print(json_string)
-else:
-    hpg.printHTML()
+pprn(prnJSON, results, hpg)
